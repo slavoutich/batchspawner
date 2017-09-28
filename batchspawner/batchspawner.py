@@ -314,15 +314,31 @@ class BatchSpawnerBase(Spawner):
         Returns immediately after sending job cancellation command if now=True, otherwise
         tries to confirm that job is no longer running."""
 
-        self.log.info("Stopping server job " + self.job_id)
-        yield self.cancel_batch_job()
         if now:
+            self.log.info("Stopping server job " + self.job_id + " NOW")
+            yield self.cancel_batch_job(force=True)
             return
+
+        # Trying to terminate in a polite way
+        self.log.info("Stopping server job " + self.job_id)
+        yield self.cancel_batch_job(force=False)
         for i in range(10):
             yield self.poll()
             if not self.state_isrunning():
                 return
             yield gen.sleep(1.0)
+
+        if self.batch_force_cancel_cmd:
+            self.log.info("Server job " + self.job_id +
+                          " did not stop in expected amount of time; "
+                          "terminating it.")
+            yield self.cancel_batch_job(force=True)
+            for i in range(10):
+                yield self.poll()
+                if not self.state_isrunning():
+                    return
+                yield gen.sleep(1.0)
+
         if self.job_id:
             self.log.warn("Notebook server job {0} at {1}:{2} possibly failed to terminate".format(
                              self.job_id, self.user.server.ip, self.user.server.port)
