@@ -202,8 +202,10 @@ class BatchSpawnerBase(Spawner):
 
     batch_force_cancel_cmd = Unicode(
         None,
-        help="Command to stop/cancel a previously submitted job. Formatted like batch_query_cmd."
-        ).tag(config=True)
+        help="Command to stop/cancel a previously submitted job. Formatted "
+             "like batch_query_cmd.",
+        allow_none=True,
+    ).tag(config=True)
 
     @gen.coroutine
     def cancel_batch_job(self, force=False):
